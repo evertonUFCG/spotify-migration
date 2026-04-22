@@ -511,21 +511,6 @@ const state = {
   stats: { ok: 0, skip: 0, playlists: 0 }
 };
 
-// ── GITHUB REDIRECT HELPERS ───────────────────────────────────────────────
-function updateRedirectPreview() {
-  const user = document.getElementById('github-user').value.trim();
-  const repo = document.getElementById('github-repo').value.trim();
-  const uri = user && repo ? `https://${user}.github.io/${repo}/callback.html` : '';
-  document.getElementById('sp-redirect').value = uri;
-  if (uri) document.getElementById('redirect-preview').textContent = uri;
-}
-function copyRedirect() {
-  const val = document.getElementById('sp-redirect').value;
-  if (!val) { alert('Preencha usuário e repositório do GitHub primeiro.'); return; }
-  navigator.clipboard.writeText(val);
-  event.target.textContent = '✓ Copiado';
-}
-
 // ── SPOTIFY AUTH (PKCE via GitHub Pages callback) ─────────────────────────
 function generateRandomString(length) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -542,12 +527,9 @@ async function generateCodeChallenge(verifier) {
 
 async function startSpotifyAuth() {
   const clientId = document.getElementById('sp-client-id').value.trim();
-  const githubUser = document.getElementById('github-user').value.trim();
-  const githubRepo = document.getElementById('github-repo').value.trim();
   if (!clientId) { alert('Cole o Client ID do Spotify.'); return; }
-  if (!githubUser || !githubRepo) { alert('Preencha seu usuário e repositório do GitHub.'); return; }
 
-  const redirectUri = `https://${githubUser}.github.io/${githubRepo}/callback.html`;
+  const redirectUri = 'https://evertonufcg.github.io/spotify-migration/callback.html';
   const verifier = generateRandomString(64);
   const challenge = await generateCodeChallenge(verifier);
 
