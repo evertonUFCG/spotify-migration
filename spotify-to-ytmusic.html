@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spotify → YouTube Music</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1DB954;
+    --red: #FF0000;
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --border: #222;
+    --text: #f0f0f0;
+    --muted: #555;
+    --accent: #1DB954;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(29,185,84,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(29,185,84,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .logo-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .logo-icon {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .logo-icon.spotify { background: var(--green); }
+  .logo-icon.yt { background: var(--red); }
+
+  .arrow-anim {
+    font-size: 20px;
+    color: var(--muted);
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+  h1 {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    margin-top: 8px;
+    letter-spacing: 0.05em;
+  }
+
+  /* Steps */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: border-color 0.3s;
+  }
+
+  .step.active { border-color: var(--accent); }
+  .step.done { border-color: #1a3a25; }
+  .step.locked { opacity: 0.4; pointer-events: none; }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .step.active .step-num { background: var(--accent); color: #000; }
+  .step.done .step-num { background: #1a3a25; color: var(--accent); }
+
+  .step-title {
+    font-weight: 700;
+    font-size: 1rem;
+  }
+
+  .step-check {
+    margin-left: auto;
+    color: var(--accent);
+    font-size: 1.2rem;
+    display: none;
+  }
+  .step.done .step-check { display: block; }
+
+  label {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    background: #0d0d0d;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 12px;
+  }
+  input:focus { border-color: var(--accent); }
+
+  .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #000;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 11px 22px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    letter-spacing: 0.01em;
+  }
+  .btn:hover { opacity: 0.88; }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn.secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn.red { background: var(--red); color: #fff; }
+  .btn.full { width: 100%; justify-content: center; }
+
+  .hint {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+  .hint a { color: var(--accent); text-decoration: none; }
+  .hint a:hover { text-decoration: underline; }
+
+  /* Playlist grid */
+  #playlist-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 4px;
+    margin-bottom: 14px;
+  }
+  #playlist-grid::-webkit-scrollbar { width: 4px; }
+  #playlist-grid::-webkit-scrollbar-track { background: transparent; }
+  #playlist-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .playlist-card {
+    background: #0d0d0d;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .playlist-card:hover { border-color: #444; }
+  .playlist-card.selected { border-color: var(--accent); background: #0f1f14; }
+
+  .playlist-img {
+    width: 36px; height: 36px;
+    border-radius: 4px;
+    object-fit: cover;
+    background: var(--border);
+    flex-shrink: 0;
+    font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .playlist-info { overflow: hidden; }
+  .playlist-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .playlist-count {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .sel-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .sel-count {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  /* Progress */
+  #progress-section { display: none; }
+
+  .progress-bar-wrap {
+    background: var(--border);
+    border-radius: 4px;
+    height: 6px;
+    margin: 16px 0 8px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.4s;
+    border-radius: 4px;
+  }
+
+  .progress-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  #log {
+    background: #060606;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    height: 180px;
+    overflow-y: auto;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    line-height: 1.8;
+    margin-top: 14px;
+  }
+  #log::-webkit-scrollbar { width: 4px; }
+  #log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-ok { color: var(--accent); }
+  .log-err { color: #ff6b6b; }
+  .log-info { color: var(--muted); }
+  .log-warn { color: #f0a500; }
+
+  /* Alert */
+  .alert {
+    background: #1a1000;
+    border: 1px solid #3a2800;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.8rem;
+    color: #f0a500;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .alert.info { background: #0a1a14; border-color: #1a3a28; color: #4dd980; }
+  .alert.red { background: #1a0000; border-color: #3a0000; color: #ff6b6b; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+  }
+
+  /* Auth step */
+  .auth-btn-row { display: flex; gap: 10px; margin-top: 4px; }
+
+  .tag {
+    display: inline-block;
+    background: #1a3a25;
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.06em;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  .results-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .result-box {
+    background: #0d0d0d;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+  }
+  .result-box .num {
+    font-size: 1.8rem;
+    font-weight: 800;
+    display: block;
+  }
+  .result-box .lbl {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .result-box.green .num { color: var(--accent); }
+  .result-box.orange .num { color: #f0a500; }
+  .result-box.red-c .num { color: #ff6b6b; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo-row">
+      <div class="logo-icon spotify">🎵</div>
+      <div class="arrow-anim">→</div>
+      <div class="logo-icon yt">▶</div>
+    </div>
+    <h1>Spotify → YouTube Music</h1>
+    <p class="subtitle">// migração automática · sem limite de músicas · gratuito</p>
+  </header>
+
+  <div class="steps">
+
+    <!-- STEP 1: Spotify API -->
+    <div class="step active" id="step1">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div class="step-title">Credenciais do Spotify <span class="tag">API GRATUITA</span></div>
+        <span class="step-check">✓</span>
+      </div>
+      <div class="alert">
+        Crie um app gratuito em <a href="https://developer.spotify.com/dashboard" target="_blank" style="color:#f0a500">developer.spotify.com/dashboard</a> → "Create app" → coloque qualquer nome → em <strong>Redirect URI</strong> adicione: <code style="background:#111;padding:2px 6px;border-radius:4px">http://localhost</code> → salve e copie Client ID e Secret abaixo.
+      </div>
+      <div class="input-row">
+        <div>
+          <label>Client ID</label>
+          <input type="text" id="sp-client-id" placeholder="cole aqui o Client ID">
+        </div>
+        <div>
+          <label>Client Secret</label>
+          <input type="password" id="sp-client-secret" placeholder="cole aqui o Client Secret">
+        </div>
+      </div>
+      <label>Redirect URI — copie e adicione no painel do Spotify</label>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+        <input type="text" id="sp-redirect" value="http://localhost" readonly style="opacity:0.7;margin:0;flex:1">
+        <button class="btn secondary" style="white-space:nowrap;padding:10px 14px" onclick="navigator.clipboard.writeText('http://localhost');this.textContent='✓ Copiado'">Copiar</button>
+      </div>
+      <div class="auth-btn-row">
+        <button class="btn" onclick="startSpotifyAuth()">🔗 Conectar com Spotify</button>
+      </div>
+      <p class="hint">Adicione <strong style="color:#f0f0f0">http://localhost</strong> como Redirect URI no painel do Spotify, salve, e então clique em Conectar.</p>
+    </div>
+
+    <!-- STEP 2: YouTube Music Auth -->
+    <div class="step locked" id="step2">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div class="step-title">Autenticar no YouTube Music</div>
+        <span class="step-check">✓</span>
+      </div>
+      <div class="alert info">
+        Vamos usar sua sessão do YouTube Music já aberta no browser. Clique no botão abaixo para autorizar o acesso.
+      </div>
+      <div class="auth-btn-row">
+        <button class="btn red" onclick="authYouTube()">▶ Conectar com YouTube Music</button>
+      </div>
+      <p class="hint">Uma janela do Google abrirá para autorizar. Certifique-se de estar logado no YouTube Music antes.</p>
+    </div>
+
+    <!-- STEP 3: Select playlists -->
+    <div class="step locked" id="step3">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <div class="step-title">Selecionar playlists</div>
+        <span class="step-check">✓</span>
+      </div>
+      <div id="playlists-loading" class="hint" style="display:none">⏳ Carregando playlists...</div>
+      <div id="playlists-ui" style="display:none">
+        <div class="sel-actions">
+          <button class="btn secondary" onclick="selectAll()">Selecionar todas</button>
+          <button class="btn secondary" onclick="selectNone()">Limpar</button>
+          <span class="sel-count" id="sel-count">0 selecionadas</span>
+        </div>
+        <div id="playlist-grid"></div>
+        <button class="btn full" onclick="goToMigrate()">Migrar selecionadas →</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: Migrate -->
+    <div class="step locked" id="step4">
+      <div class="step-header">
+        <div class="step-num">4</div>
+        <div class="step-title">Migração</div>
+        <span class="step-check">✓</span>
+      </div>
+      <div id="migrate-start">
+        <div class="alert info" id="migrate-summary">Pronto para migrar.</div>
+        <button class="btn full" onclick="startMigration()" id="btn-migrate">🚀 Iniciar migração</button>
+      </div>
+      <div id="progress-section">
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-label">
+          <span id="prog-text">Aguardando...</span>
+          <span id="prog-pct">0%</span>
+        </div>
+        <div id="log"></div>
+        <div class="results-summary" id="results-summary" style="display:none">
+          <div class="result-box green"><span class="num" id="res-ok">0</span><span class="lbl">Músicas migradas</span></div>
+          <div class="result-box orange"><span class="num" id="res-skip">0</span><span class="lbl">Não encontradas</span></div>
+          <div class="result-box red-c"><span class="num" id="res-pl">0</span><span class="lbl">Playlists criadas</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+const state = {
+  spotifyToken: null,
+  ytToken: null,
+  playlists: [],
+  selected: new Set(),
+  stats: { ok: 0, skip: 0, playlists: 0 }
+};
+
+// ── GITHUB REDIRECT HELPERS ───────────────────────────────────────────────
+function updateRedirectPreview() {
+  const user = document.getElementById('github-user').value.trim();
+  const repo = document.getElementById('github-repo').value.trim();
+  const uri = user && repo ? `https://${user}.github.io/${repo}/callback.html` : '';
+  document.getElementById('sp-redirect').value = uri;
+  if (uri) document.getElementById('redirect-preview').textContent = uri;
+}
+function copyRedirect() {
+  const val = document.getElementById('sp-redirect').value;
+  if (!val) { alert('Preencha usuário e repositório do GitHub primeiro.'); return; }
+  navigator.clipboard.writeText(val);
+  event.target.textContent = '✓ Copiado';
+}
+
+// ── SPOTIFY AUTH (PKCE via GitHub Pages callback) ─────────────────────────
+function generateRandomString(length) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from(crypto.getRandomValues(new Uint8Array(length)))
+    .map(b => chars[b % chars.length]).join('');
+}
+
+async function generateCodeChallenge(verifier) {
+  const data = new TextEncoder().encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+async function startSpotifyAuth() {
+  const clientId = document.getElementById('sp-client-id').value.trim();
+  const githubUser = document.getElementById('github-user').value.trim();
+  const githubRepo = document.getElementById('github-repo').value.trim();
+  if (!clientId) { alert('Cole o Client ID do Spotify.'); return; }
+  if (!githubUser || !githubRepo) { alert('Preencha seu usuário e repositório do GitHub.'); return; }
+
+  const redirectUri = `https://${githubUser}.github.io/${githubRepo}/callback.html`;
+  const verifier = generateRandomString(64);
+  const challenge = await generateCodeChallenge(verifier);
+
+  sessionStorage.setItem('sp_verifier', verifier);
+  sessionStorage.setItem('sp_client_id', clientId);
+  sessionStorage.setItem('sp_redirect', redirectUri);
+
+  const scopes = 'playlist-read-private playlist-read-collaborative user-library-read';
+  const params = new URLSearchParams({
+    client_id: clientId,
+    response_type: 'code',
+    redirect_uri: redirectUri,
+    scope: scopes,
+    code_challenge_method: 'S256',
+    code_challenge: challenge,
+    show_dialog: 'true'
+  });
+
+  // Listen for postMessage from callback page
+  window.addEventListener('message', async function onMsg(e) {
+    if (e.data && e.data.type === 'spotify_callback') {
+      window.removeEventListener('message', onMsg);
+      await exchangeSpotifyCode(e.data.code);
+    }
+  });
+
+  window.open(
+    'https://accounts.spotify.com/authorize?' + params.toString(),
+    'spotify-auth',
+    'width=500,height=700,left=200,top=100'
+  );
+}
+
+async function exchangeSpotifyCode(code) {
+  const verifier   = sessionStorage.getItem('sp_verifier');
+  const clientId   = sessionStorage.getItem('sp_client_id');
+  const redirectUri = sessionStorage.getItem('sp_redirect');
+
+  const body = new URLSearchParams({
+    grant_type: 'authorization_code',
+    code,
+    redirect_uri: redirectUri,
+    client_id: clientId,
+    code_verifier: verifier
+  });
+
+  const res = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body
+  });
+
+  const data = await res.json();
+  if (data.access_token) {
+    state.spotifyToken = data.access_token;
+    onSpotifyAuthed();
+  } else {
+    alert('Erro ao obter token do Spotify: ' + JSON.stringify(data));
+  }
+}
+
+function onSpotifyAuthed() {
+  markDone('step1');
+  activate('step2');
+  log('✓ Spotify conectado!', 'ok');
+}
+
+// ── YOUTUBE AUTH ───────────────────────────────────────────────────────────
+function authYouTube() {
+  // Use Google OAuth2 implicit flow
+  const clientId = prompt(
+    'Para o YouTube Music, precisamos de um Google OAuth Client ID.\n\n' +
+    '1. Acesse: console.cloud.google.com\n' +
+    '2. Crie um projeto → APIs & Services → Credenciais\n' +
+    '3. Criar credenciais → ID do cliente OAuth → Aplicativo da Web\n' +
+    '4. Adicione http://localhost como URI autorizado\n' +
+    '5. Cole o Client ID aqui:'
+  );
+  if (!clientId) return;
+
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: window.location.href.split('?')[0],
+    response_type: 'token',
+    scope: 'https://www.googleapis.com/auth/youtube',
+    include_granted_scopes: 'true',
+    state: 'ytauth'
+  });
+
+  const popup = window.open(
+    'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString(),
+    'yt-auth',
+    'width=500,height=700'
+  );
+
+  const interval = setInterval(() => {
+    try {
+      const url = popup.location.href;
+      if (url.includes('access_token')) {
+        const hash = new URLSearchParams(popup.location.hash.slice(1));
+        state.ytToken = hash.get('access_token');
+        popup.close();
+        clearInterval(interval);
+        onYTAuthed();
+      }
+    } catch(e) {}
+    if (popup.closed) clearInterval(interval);
+  }, 500);
+}
+
+function onYTAuthed() {
+  markDone('step2');
+  activate('step3');
+  loadPlaylists();
+}
+
+// ── LOAD PLAYLISTS ─────────────────────────────────────────────────────────
+async function loadPlaylists() {
+  document.getElementById('playlists-loading').style.display = 'block';
+  document.getElementById('playlists-ui').style.display = 'none';
+
+  let url = 'https://api.spotify.com/v1/me/playlists?limit=50';
+  const all = [];
+
+  while (url) {
+    const res = await fetch(url, {
+      headers: { Authorization: 'Bearer ' + state.spotifyToken }
+    });
+    const data = await res.json();
+    all.push(...data.items);
+    url = data.next;
+  }
+
+  state.playlists = all;
+  renderPlaylists(all);
+  document.getElementById('playlists-loading').style.display = 'none';
+  document.getElementById('playlists-ui').style.display = 'block';
+}
+
+function renderPlaylists(playlists) {
+  const grid = document.getElementById('playlist-grid');
+  grid.innerHTML = '';
+  playlists.forEach((pl, i) => {
+    const img = pl.images?.[0]?.url;
+    const card = document.createElement('div');
+    card.className = 'playlist-card';
+    card.dataset.i = i;
+    card.innerHTML = `
+      <div class="playlist-img">${img ? `<img src="${img}" width="36" height="36" style="border-radius:4px">` : '🎵'}</div>
+      <div class="playlist-info">
+        <div class="playlist-name">${pl.name}</div>
+        <div class="playlist-count">${pl.tracks.total} músicas</div>
+      </div>
+    `;
+    card.onclick = () => togglePlaylist(i, card);
+    grid.appendChild(card);
+  });
+}
+
+function togglePlaylist(i, card) {
+  if (state.selected.has(i)) {
+    state.selected.delete(i);
+    card.classList.remove('selected');
+  } else {
+    state.selected.add(i);
+    card.classList.add('selected');
+  }
+  updateSelCount();
+}
+
+function selectAll() {
+  document.querySelectorAll('.playlist-card').forEach((c, i) => {
+    state.selected.add(i);
+    c.classList.add('selected');
+  });
+  updateSelCount();
+}
+
+function selectNone() {
+  state.selected.clear();
+  document.querySelectorAll('.playlist-card').forEach(c => c.classList.remove('selected'));
+  updateSelCount();
+}
+
+function updateSelCount() {
+  const total = [...state.selected].reduce((s, i) => s + state.playlists[i].tracks.total, 0);
+  document.getElementById('sel-count').textContent =
+    `${state.selected.size} playlist(s) · ~${total} músicas`;
+}
+
+function goToMigrate() {
+  if (state.selected.size === 0) { alert('Selecione ao menos uma playlist.'); return; }
+  markDone('step3');
+  activate('step4');
+  const total = [...state.selected].reduce((s, i) => s + state.playlists[i].tracks.total, 0);
+  document.getElementById('migrate-summary').textContent =
+    `${state.selected.size} playlist(s) selecionada(s) · ~${total} músicas para migrar.`;
+}
+
+// ── MIGRATION ──────────────────────────────────────────────────────────────
+async function startMigration() {
+  document.getElementById('migrate-start').style.display = 'none';
+  document.getElementById('progress-section').style.display = 'block';
+  state.stats = { ok: 0, skip: 0, playlists: 0 };
+
+  const selected = [...state.selected].map(i => state.playlists[i]);
+  let totalTracks = selected.reduce((s, pl) => s + pl.tracks.total, 0);
+  let done = 0;
+
+  for (const pl of selected) {
+    log(`📋 Iniciando: "${pl.name}"`, 'info');
+
+    // 1. Get all tracks from Spotify
+    const tracks = await getAllSpotifyTracks(pl);
+    log(`  ↳ ${tracks.length} faixas carregadas do Spotify`, 'info');
+
+    // 2. Create playlist on YT Music
+    const ytPlaylistId = await createYTPlaylist(pl.name, pl.description || '');
+    if (!ytPlaylistId) {
+      log(`  ✗ Erro ao criar playlist no YouTube Music`, 'err');
+      continue;
+    }
+    state.stats.playlists++;
+    log(`  ✓ Playlist criada no YouTube Music`, 'ok');
+
+    // 3. Search and add each track
+    for (const track of tracks) {
+      const query = `${track.name} ${track.artists[0]?.name}`;
+      const videoId = await searchYT(query);
+      if (videoId) {
+        await addToYTPlaylist(ytPlaylistId, videoId);
+        state.stats.ok++;
+        log(`  ✓ ${track.name} — ${track.artists[0]?.name}`, 'ok');
+      } else {
+        state.stats.skip++;
+        log(`  ✗ Não encontrado: ${track.name}`, 'warn');
+      }
+      done++;
+      updateProgress(done, totalTracks);
+      await sleep(300); // rate limit friendly
+    }
+  }
+
+  // Done!
+  updateProgress(totalTracks, totalTracks);
+  log('🎉 Migração concluída!', 'ok');
+  showResults();
+}
+
+async function getAllSpotifyTracks(pl) {
+  const tracks = [];
+  let url = `https://api.spotify.com/v1/playlists/${pl.id}/tracks?limit=100`;
+  while (url) {
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + state.spotifyToken } });
+    const data = await res.json();
+    data.items.forEach(item => { if (item.track) tracks.push(item.track); });
+    url = data.next;
+  }
+  return tracks;
+}
+
+async function createYTPlaylist(title, description) {
+  const res = await fetch('https://www.googleapis.com/youtube/v3/playlists?part=snippet,status', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + state.ytToken,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      snippet: { title, description },
+      status: { privacyStatus: 'private' }
+    })
+  });
+  const data = await res.json();
+  return data.id || null;
+}
+
+async function searchYT(query) {
+  const res = await fetch(
+    `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&maxResults=1`,
+    { headers: { Authorization: 'Bearer ' + state.ytToken } }
+  );
+  const data = await res.json();
+  return data.items?.[0]?.id?.videoId || null;
+}
+
+async function addToYTPlaylist(playlistId, videoId) {
+  await fetch('https://www.googleapis.com/youtube/v3/playlistItems?part=snippet', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + state.ytToken,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      snippet: {
+        playlistId,
+        resourceId: { kind: 'youtube#video', videoId }
+      }
+    })
+  });
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function log(msg, type = 'info') {
+  const el = document.getElementById('log');
+  const line = document.createElement('div');
+  line.className = `log-${type}`;
+  line.textContent = msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function updateProgress(done, total) {
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('prog-text').textContent = `${done} / ${total} faixas`;
+  document.getElementById('prog-pct').textContent = pct + '%';
+}
+
+function showResults() {
+  document.getElementById('res-ok').textContent = state.stats.ok;
+  document.getElementById('res-skip').textContent = state.stats.skip;
+  document.getElementById('res-pl').textContent = state.stats.playlists;
+  document.getElementById('results-summary').style.display = 'grid';
+  markDone('step4');
+}
+
+function markDone(id) {
+  document.getElementById(id).classList.remove('active');
+  document.getElementById(id).classList.add('done');
+}
+
+function activate(id) {
+  document.getElementById(id).classList.remove('locked');
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body>
+</html>
