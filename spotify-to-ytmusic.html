@@ -412,27 +412,27 @@
         <span class="step-check">✓</span>
       </div>
       <div class="alert">
-        Crie um app gratuito em <a href="https://developer.spotify.com/dashboard" target="_blank" style="color:#f0a500">developer.spotify.com/dashboard</a> → "Create app" → coloque qualquer nome → em <strong>Redirect URI</strong> adicione: <code style="background:#111;padding:2px 6px;border-radius:4px">http://localhost</code> → salve e copie Client ID e Secret abaixo.
+        No painel do Spotify → <a href="https://developer.spotify.com/dashboard" target="_blank" style="color:#f0a500">developer.spotify.com/dashboard</a> → seu app → <strong>Settings → Edit → Redirect URIs</strong> → adicione o URI abaixo e clique em <strong>Save</strong>.
+      </div>
+      <label>Redirect URI — copie e adicione no Spotify</label>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
+        <input type="text" id="sp-redirect" value="https://evertonufcg.github.io/spotify-migration/callback.html" readonly style="opacity:0.9;margin:0;flex:1;color:#1DB954">
+        <button class="btn secondary" style="white-space:nowrap;padding:10px 14px" onclick="navigator.clipboard.writeText('https://evertonufcg.github.io/spotify-migration/callback.html');this.textContent='✓ Copiado'">Copiar</button>
       </div>
       <div class="input-row">
         <div>
-          <label>Client ID</label>
+          <label>Client ID do Spotify</label>
           <input type="text" id="sp-client-id" placeholder="cole aqui o Client ID">
         </div>
         <div>
-          <label>Client Secret</label>
+          <label>Client Secret do Spotify</label>
           <input type="password" id="sp-client-secret" placeholder="cole aqui o Client Secret">
         </div>
-      </div>
-      <label>Redirect URI — copie e adicione no painel do Spotify</label>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
-        <input type="text" id="sp-redirect" value="http://localhost" readonly style="opacity:0.7;margin:0;flex:1">
-        <button class="btn secondary" style="white-space:nowrap;padding:10px 14px" onclick="navigator.clipboard.writeText('http://localhost');this.textContent='✓ Copiado'">Copiar</button>
       </div>
       <div class="auth-btn-row">
         <button class="btn" onclick="startSpotifyAuth()">🔗 Conectar com Spotify</button>
       </div>
-      <p class="hint">Adicione <strong style="color:#f0f0f0">http://localhost</strong> como Redirect URI no painel do Spotify, salve, e então clique em Conectar.</p>
+      <p class="hint">Após adicionar o Redirect URI no Spotify e salvar, cole o Client ID e Secret acima e clique em Conectar.</p>
     </div>
 
     <!-- STEP 2: YouTube Music Auth -->
