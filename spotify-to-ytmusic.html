@@ -443,12 +443,15 @@
         <span class="step-check">✓</span>
       </div>
       <div class="alert info">
-        Vamos usar sua sessão do YouTube Music já aberta no browser. Clique no botão abaixo para autorizar o acesso.
+        No <a href="https://console.cloud.google.com" target="_blank" style="color:#4dd980">Google Cloud Console</a> → APIs & Services → Credentials → seu OAuth client → em <strong>Authorized JavaScript origins</strong> adicione:<br>
+        <code style="background:#0a0a0a;padding:2px 8px;border-radius:4px;color:#4dd980">https://evertonufcg.github.io</code>
       </div>
+      <label>Client ID do Google</label>
+      <input type="text" id="yt-client-id" placeholder="cole aqui o Client ID do Google (.apps.googleusercontent.com)" style="margin-bottom:12px">
       <div class="auth-btn-row">
         <button class="btn red" onclick="authYouTube()">▶ Conectar com YouTube Music</button>
       </div>
-      <p class="hint">Uma janela do Google abrirá para autorizar. Certifique-se de estar logado no YouTube Music antes.</p>
+      <p class="hint">Certifique-se de estar logado no YouTube Music antes de conectar.</p>
     </div>
 
     <!-- STEP 3: Select playlists -->
@@ -599,20 +602,14 @@ function onSpotifyAuthed() {
 
 // ── YOUTUBE AUTH ───────────────────────────────────────────────────────────
 function authYouTube() {
-  // Use Google OAuth2 implicit flow
-  const clientId = prompt(
-    'Para o YouTube Music, precisamos de um Google OAuth Client ID.\n\n' +
-    '1. Acesse: console.cloud.google.com\n' +
-    '2. Crie um projeto → APIs & Services → Credenciais\n' +
-    '3. Criar credenciais → ID do cliente OAuth → Aplicativo da Web\n' +
-    '4. Adicione http://localhost como URI autorizado\n' +
-    '5. Cole o Client ID aqui:'
-  );
-  if (!clientId) return;
+  const clientId = document.getElementById('yt-client-id').value.trim();
+  if (!clientId) { alert('Cole o Client ID do Google.'); return; }
+
+  const redirectUri = 'https://evertonufcg.github.io/spotify-migration/spotify-to-ytmusic.html';
 
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: window.location.href.split('?')[0],
+    redirect_uri: redirectUri,
     response_type: 'token',
     scope: 'https://www.googleapis.com/auth/youtube',
     include_granted_scopes: 'true',
@@ -625,10 +622,19 @@ function authYouTube() {
     'width=500,height=700'
   );
 
+  // Listen for token in the hash when Google redirects back
+  window.addEventListener('message', function onYTMsg(e) {
+    if (e.data && e.data.type === 'yt_token') {
+      state.ytToken = e.data.token;
+      window.removeEventListener('message', onYTMsg);
+      onYTAuthed();
+    }
+  });
+
   const interval = setInterval(() => {
     try {
       const url = popup.location.href;
-      if (url.includes('access_token')) {
+      if (url.includes('evertonufcg.github.io') && url.includes('access_token')) {
         const hash = new URLSearchParams(popup.location.hash.slice(1));
         state.ytToken = hash.get('access_token');
         popup.close();
@@ -636,7 +642,7 @@ function authYouTube() {
         onYTAuthed();
       }
     } catch(e) {}
-    if (popup.closed) clearInterval(interval);
+    if (!popup || popup.closed) clearInterval(interval);
   }, 500);
 }
 
